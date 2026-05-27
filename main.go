@@ -9,8 +9,23 @@ import (
 
 const (
 	configFile = "/etc/shairport-sync.conf"
-	version    = "5.0.4" // 这里改版本号
 )
+
+// 从 shairport-sync -V 自动获取版本号
+func getShairportSyncVersion() string {
+	cmd := exec.Command("shairport-sync", "-V")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "unknown"
+	}
+	// 匹配类似 5.0、4.1、3.2.1 这样的版本号
+	re := regexp.MustCompile(`^\d+\.\d+\.\d+`)
+	match := re.FindString(string(out))
+	if match == "" {
+		return "unknown"
+	}
+	return match
+}
 
 func main() {
 	http.HandleFunc("/", indexHandler)
@@ -23,6 +38,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	password := getConfig("password")
 	device := getConfig("output_device")
 	mixer := getConfig("mixer_control_name")
+	version := getShairportSyncVersion() // 自动获取
 
 html := `
 <html lang="zh-CN">

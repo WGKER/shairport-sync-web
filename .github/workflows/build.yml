@@ -1,10 +1,10 @@
 name: Build ARM64 Image (Manual)
 
-# 仅保留 手动触发
+# 仅手动触发
 on:
   workflow_dispatch:
 
-# 在这里统一定义一次，全局使用
+# 全局变量
 env:
   IMAGE_NAME: shairport-sync-web
   IMAGE_TAG: arm64-5.0.4
@@ -15,24 +15,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU
+      - name: Set up QEMU (ARM64 模拟)
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 构建 ARM64 镜像
+      # 构建 ARM64 镜像 → 输出为 tar 文件
       - name: Build ARM64 image
         run: |
           docker buildx build \
             --platform linux/arm64 \
             -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-            -o type=docker,dest=${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }} \
+            --output type=docker,dest=${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}.tar \
             .
 
-      # 上传成品
-      - name: Upload artifact
+      # 上传构建好的镜像文件
+      - name: Upload ARM64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
-          path: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}
+          name: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}.tar
+          path: ${{ env.IMAGE_NAME }}-${{ env.IMAGE_TAG }}.tar

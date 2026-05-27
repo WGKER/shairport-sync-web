@@ -6,5 +6,8 @@ RUN chmod +x /webui
 
 EXPOSE 8086
 
-# ✅ 正确启动：后台webui + 前台shairport-sync（永不重启）
-CMD ["/bin/sh", "-c", "/webui & exec shairport-sync"]
+# 关键：自动把 webui 启动命令插入 run.sh 第五行
+RUN sed -i '5i /webui &' /run.sh
+
+# 使用官方启动脚本
+CMD ["/run.sh"]

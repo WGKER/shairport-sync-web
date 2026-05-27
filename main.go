@@ -151,13 +151,21 @@ func getConfig(key string) string {
 }
 
 // 写入配置
+// 重点：volume_range_db 不加双引号
 func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
+
 	for i, line := range lines {
 		lineTrim := strings.TrimSpace(line)
 		if strings.HasPrefix(lineTrim, key+" = ") {
-			lines[i] = key + ` = ` + val + `;`
+			if key == "volume_range_db" {
+				// 不加双引号
+				lines[i] = key + ` = ` + val + `;`
+			} else {
+				// 其他都加双引号
+				lines[i] = key + ` = "` + val + `";`
+			}
 		}
 	}
 	os.WriteFile(configFile, []byte(strings.Join(lines, "\n")), 0644)

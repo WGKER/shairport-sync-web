@@ -1,4 +1,4 @@
-name: Build ARM64 Image (Manual)
+name: Build ARM64 shairport-sync-web docker image
 
 # 仅手动触发
 on:

@@ -3,19 +3,11 @@
 
 ## 目录结构
 
-    shairport-web/
-
+    shairport-sync-web/
     ├── Dockerfile
-  
-    ├── docker-compose.yml
-  
-    ├── shairport-sync.conf
-   
-    └── web/
-  
-      ├── app.py
-    
-      └── templates/
-    
-          └── index.html
-        
+    ├── start.sh
+    ├── www/
+    │   ├── index.html       # 你的样式页面（纯模板，由CGI填充变量）
+    │   └── cgi-bin/
+    │       └── main.cgi     # 统一入口CGI（读取配置、渲染页面、处理提交、输出日志）
+    └── shairport-sync.conf  # 适配新字段的配置文件

@@ -4,8 +4,6 @@ FROM mikebrady/shairport-sync:5.0.4
 RUN apk update && \
     # 先装 alsa-lib（确保有）+ 必要依赖
     apk add --no-cache \
-        alsa-lib \
-        alsa-utils \
         python3 \
         py3-pip && \
     # 用 python3 -m pip 最稳

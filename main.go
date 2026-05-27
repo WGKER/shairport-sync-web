@@ -9,6 +9,7 @@ import (
 
 const (
 	configFile = "/etc/shairport-sync.conf"
+	version    = "5.0.4" // 这里改版本号
 )
 
 func main() {
@@ -48,6 +49,15 @@ html := `
             margin-left:auto;
             margin-right:auto;
         }
+		.version {
+            position: fixed;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +75,7 @@ html := `
             <button class="btn" type="submit">保存并重启</button>
         </form>
     </div>
+	<div class="version">Shairport Sync 版本： `+version+`</div>
 </body>
 </html>`
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

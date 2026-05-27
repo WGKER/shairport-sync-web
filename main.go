@@ -81,7 +81,7 @@ html := `
 <body>
     <div class="card">
         <h2>Shairport Sync 管理面板</h2>
-        <form method="post" action="/save">
+        <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">
             <label>连接密码</label>

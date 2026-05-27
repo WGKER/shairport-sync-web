@@ -1,0 +1,26 @@
+name: 仅编译 Go ARM64 二进制
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false  # 关闭缓存，避免报错
+
+      - name: 编译 ARM64 静态二进制
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o webui main.go
+
+      - name: 上传编译好的 webui 文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-arm64
+          path: webui

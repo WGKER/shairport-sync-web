@@ -178,7 +178,7 @@ func setConfig(key, val string) {
 		if key == "volume_range_db" {
 			newLine = key + " = " + val + " " + suffix
 		} else {
-			newLine = key + " = \"" + val + "\" " + suffix
+			newLine = key + " = \"" + val + "\" " +suffix
 		}
 
 		lines[i] = newLine

@@ -57,7 +57,7 @@ html := `
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" required>
             <label>连接密码</label>
-            <input type="text" name="password" value="`+password+`">
+			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 only )">
             <label>声卡设备</label>
             <input type="text" name="device" value="`+device+`" required>
             <label>混音控制</label>

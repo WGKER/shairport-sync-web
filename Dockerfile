@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
 COPY web /app/web
 
 # 暴露端口
-EXPOSE 8080 5000 7000
+EXPOSE 8086
 
 # 启动：同时运行 shairport-sync + Web 面板
 CMD ["sh", "-c", "shairport-sync & cd /app/web && python3 app.py"]

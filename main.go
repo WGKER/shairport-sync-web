@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 )
 
@@ -19,13 +18,14 @@ func getShairportSyncVersion() string {
 	if err != nil {
 		return "unknown"
 	}
-	// 匹配类似 5.0、4.1、3.2.1 这样的版本号
-	re := regexp.MustCompile(`^\d+\.\d+\.\d+`)
-	match := re.FindString(string(out))
-	if match == "" {
-		return "unknown"
+// 自动去掉 - 后面的所有内容，只保留主版本号
+	line := strings.TrimSpace(string(out))
+	parts := strings.SplitN(line, "-", 2)
+	if len(parts) > 0 {
+		return parts[0]
 	}
-	return match
+
+	return "unknown"
 }
 
 func main() {
@@ -119,24 +119,45 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
+// 读取配置，自动忽略 ; 开头的注释
 func getConfig(key string) string {
 	data, _ := os.ReadFile(configFile)
 	for _, line := range strings.Split(string(data), "\n") {
-		line := strings.TrimSpace(line)
+		// 去掉前后空格
+		line = strings.TrimSpace(line)
+
+		// 忽略注释行
+		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+
+		// 匹配 key = value
 		if strings.HasPrefix(line, key+" = ") {
 			val := strings.TrimPrefix(line, key+" = ")
-			return strings.Trim(val, `"`)
+
+			// 遇到 ; 就截断，忽略后面的注释
+			if idx := strings.Index(val, ";"); idx != -1 {
+				val = val[:idx]
+			}
+
+			// 去掉引号
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"`)
+			val = strings.Trim(val, `'`)
+			return val
 		}
 	}
 	return ""
 }
 
+// 写入配置
 func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
 	for i, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), key+" = ") {
-			lines[i] = key + ` = "` + val + `"`
+		lineTrim := strings.TrimSpace(line)
+		if strings.HasPrefix(lineTrim, key+" = ") {
+			lines[i] = key + ` = ` + val + `;`
 		}
 	}
 	os.WriteFile(configFile, []byte(strings.Join(lines, "\n")), 0644)

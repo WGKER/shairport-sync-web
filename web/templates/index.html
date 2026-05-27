@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shairport-Sync 管理面板</title>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif;}
+        body {background: #f5f7fa; padding: 20px; max-width: 800px; margin: 0 auto;}
+        .card {background: #fff; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px #e0e0e0;}
+        h2 {color: #2c3e50; margin-bottom: 20px; border-left: 4px solid #3498db; padding-left: 10px;}
+        .tip {color: #27ae60; font-weight: bold; margin: 10px 0;}
+        label {display: block; margin: 15px 0 5px; color: #34495e;}
+        input, textarea {width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;}
+        .btn {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 10px 24px;
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .btn:hover {background: #2980b9;}
+        .vol-wrap {display: flex; align-items: center; gap: 15px; margin-top: 8px;}
+        #volume {flex: 1;}
+        .vol-num {min-width: 40px; text-align: center;}
+        textarea {min-height: 180px; resize: vertical; margin-top: 8px;}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>基础配置</h2>
+        {% if msg %}<p class="tip">{{ msg }}</p>{% endif %}
+        <form method="POST">
+            <input type="hidden" name="action" value="save_cfg">
+            <label>AirPlay 设备名称</label>
+            <input type="text" name="name" value="{{ name }}" required>
+
+            <label>AirPlay 连接密码</label>
+            <input type="text" name="password" value="{{ password }}">
+
+            <label>声卡设备 (例: hw:0、hw:1)</label>
+            <input type="text" name="device" value="{{ device }}" required>
+
+            <label>混音器控制器 (例: PCM、Master)</label>
+            <input type="text" name="mixer" value="{{ mixer }}" required>
+
+            <button class="btn" type="submit">保存配置并重启服务</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>音量控制</h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="set_vol">
+            <div class="vol-wrap">
+                <input type="range" id="volume" name="volume" min="0" max="100" value="{{ volume }}" oninput="document.querySelector('.vol-num').innerText = this.value + '%'">
+                <span class="vol-num">{{ volume }}%</span>
+            </div>
+            <button class="btn" type="submit">应用音量</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>运行日志（最新50行）</h2>
+        <textarea readonly>{{ log }}</textarea>
+    </div>
+</body>
+</html>

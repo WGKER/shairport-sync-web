@@ -1,15 +1,10 @@
-FROM mikebrady/shairport-sync:latest
-LABEL maintainer="shairport-sync-web"
+FROM mikebrady/shairport-sync:5.0.4
 
-# 复制文件
-COPY ./www /www
-COPY ./start.sh /start.sh
+# 复制 Actions 编译好的 webui
+COPY webui /webui
+RUN chmod +x /webui
 
-# 添加执行权限
-RUN chmod +x /start.sh \
-    && chmod +x /www/cgi-bin/main.cgi
-
-# 端口：5000(AirPlay) 8080(Web管理)
 EXPOSE 8086
 
-CMD ["/start.sh"]
+# 启动 webui + shairport-sync
+CMD ["/bin/sh", "-c", "shairport-sync && exec /webui"]

@@ -1,4 +1,4 @@
-name: 仅编译 Go ARM64 二进制
+name: 仅编译 Go ARM64 二进制 webui
 
 on:
   workflow_dispatch:

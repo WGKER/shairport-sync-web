@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -8,7 +9,7 @@ import (
 )
 
 const (
-	configFile = "/etc/shairport-sync.conf"
+	configFile = "/etc/shairport-sync.conf
 	logFile    = "/var/log/shairport-sync.log"
 )
 
@@ -35,14 +36,9 @@ html := `
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
         .card{background:#fff;border-radius:10px;padding:25px;margin-bottom:20px;box-shadow:0 2px 8px #e0e0e0}
-        
-        /* 标题居中 */
         h2{color:#2c3e50;margin-bottom:20px;text-align:center;border-left:4px solid #3498db;padding-left:10px}
-        
         label{display:block;margin:15px 0 5px;color:#34495e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
-        
-        /* 按钮居中 */
         .btn{
             margin-top:18px;
             padding:10px 24px;
@@ -55,7 +51,6 @@ html := `
             margin-left:auto;
             margin-right:auto;
         }
-        
         textarea{width:100%;height:200px;margin-top:10px;border:1px solid #ddd;border-radius:6px}
     </style>
 </head>
@@ -76,7 +71,7 @@ html := `
     </div>
     <div class="card">
         <h2>运行日志</h2>
-        <iframe src="/log" style="width:100%;height:220px;border:1px solid #ddd"></iframe>
+        <iframe src="/log" style="width:100%;height:220px;border:1px solid #ddd;border-radius:6px;"></iframe>
     </div>
 </body>
 </html>`
@@ -101,8 +96,22 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
+// ✅ 修复：日志显示 + 编码 + 空日志提示
 func logHandler(w http.ResponseWriter, r *http.Request) {
-	data, _ := os.ReadFile(logFile)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	data, err := os.ReadFile(logFile)
+	if err != nil {
+		fmt.Fprintf(w, "日志文件不存在或为空\n")
+		return
+	}
+
+	// 如果日志为空
+	if len(data) == 0 {
+		fmt.Fprintf(w, "暂无运行日志")
+		return
+	}
+
 	w.Write(data)
 }
 

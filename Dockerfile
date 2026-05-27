@@ -18,7 +18,6 @@ RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     avahi \
-    avahi-compat-libdns_sd \
     dbus \
     && python3 -m pip install --no-cache-dir flask \
     && rm -rf /var/cache/apk/*

@@ -92,7 +92,7 @@ html := `
             <input type="text" name="mixer" value="`+mixer+`" placeholder="( PCM、Master 等 )">
 			<label>音量范围</label>
             <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
-            <button class="btn" type="submit">保存并重启</button>
+            <button class="btn" type="submit">保存并重启生效</button>
         </form>
     </div>
 	<div class="version">Shairport Sync 版本： `+version+`</div>

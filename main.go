@@ -38,6 +38,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	password := getConfig("password")
 	device := getConfig("output_device")
 	mixer := getConfig("mixer_control_name")
+	volumeRange := getConfig("volume_range_db") // 新增
 	version := getShairportSyncVersion() // 自动获取
 
 html := `
@@ -81,13 +82,15 @@ html := `
         <h2>Shairport Sync 管理面板</h2>
         <form method="post" action="/save">
             <label>设备名称</label>
-            <input type="text" name="name" value="`+name+`" required>
+            <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">
             <label>连接密码</label>
-			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 only )">
+			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 Only )">
             <label>声卡设备</label>
-            <input type="text" name="device" value="`+device+`" required>
-            <label>混音控制</label>
-            <input type="text" name="mixer" value="`+mixer+`" required>
+            <input type="text" name="device" value="`+device+`" placeholder="( hw:0、hw:1 等声卡序号 )">
+            <label>混音器名</label>
+            <input type="text" name="mixer" value="`+mixer+`" placeholder="( PCM、Master 等 )">
+			<label>音量范围</label>
+            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
             <button class="btn" type="submit">保存并重启</button>
         </form>
     </div>

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -9,14 +8,12 @@ import (
 )
 
 const (
-	configFile = "/etc/shairport-sync.conf
-	logFile    = "/var/log/shairport-sync.log"
+	configFile = "/etc/shairport-sync.conf"
 )
 
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
-	http.HandleFunc("/log", logHandler)
 	http.ListenAndServe(":8086", nil)
 }
 
@@ -51,7 +48,6 @@ html := `
             margin-left:auto;
             margin-right:auto;
         }
-        textarea{width:100%;height:200px;margin-top:10px;border:1px solid #ddd;border-radius:6px}
     </style>
 </head>
 <body>
@@ -68,10 +64,6 @@ html := `
             <input type="text" name="mixer" value="`+mixer+`" required>
             <button class="btn" type="submit">保存并重启</button>
         </form>
-    </div>
-    <div class="card">
-        <h2>运行日志</h2>
-        <iframe src="/log" style="width:100%;height:220px;border:1px solid #ddd;border-radius:6px;"></iframe>
     </div>
 </body>
 </html>`
@@ -94,25 +86,6 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	exec.Command("shairport-sync", "-d").Run()
 
 	http.Redirect(w, r, "/", 302)
-}
-
-// ✅ 修复：日志显示 + 编码 + 空日志提示
-func logHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	data, err := os.ReadFile(logFile)
-	if err != nil {
-		fmt.Fprintf(w, "日志文件不存在或为空\n")
-		return
-	}
-
-	// 如果日志为空
-	if len(data) == 0 {
-		fmt.Fprintf(w, "暂无运行日志")
-		return
-	}
-
-	w.Write(data)
 }
 
 func getConfig(key string) string {

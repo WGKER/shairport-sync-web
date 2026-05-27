@@ -2,11 +2,16 @@ FROM mikebrady/shairport-sync:5.0.4
 
 # 安装依赖
 RUN apk update && \
+    # 先装 alsa-lib（确保有）+ 必要依赖
     apk add --no-cache \
-    python3 \
-    py3-pip \
-    alsa-utils && \
-    pip3 install --no-cache-dir flask
+        alsa-lib \
+        alsa-utils \
+        python3 \
+        py3-pip && \
+    # 用 python3 -m pip 最稳
+    python3 -m pip install --no-cache-dir flask && \
+    # 清理
+    rm -rf /var/cache/apk/*
 
 # 复制文件
 COPY web /app/web

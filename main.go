@@ -23,14 +23,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	name := getConfig("name")
 	password := getConfig("password")
 	device := getConfig("output_device")
-	mixer := getConfig("mixer_name")
+	mixer := getConfig("mixer_control_name")
 
 html := `
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shairport 管理</title>
+    <title>Shairport Sync 管理面板</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
@@ -44,15 +44,15 @@ html := `
 </head>
 <body>
     <div class="card">
-        <h2>AirPlay 配置</h2>
+        <h2>Shairport Sync 管理面板</h2>
         <form method="post" action="/save">
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" required>
             <label>连接密码</label>
             <input type="text" name="password" value="`+password+`">
-            <label>声卡设备</label>
+            <label>声卡设备 (例: hw:0、hw:1)</label>
             <input type="text" name="device" value="`+device+`" required>
-            <label>混音器名称</label>
+            <label>混音控制 (例: PCM、Master)</label>
             <input type="text" name="mixer" value="`+mixer+`" required>
             <button class="btn" type="submit">保存并重启</button>
         </form>
@@ -76,7 +76,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	setConfig("name", name)
 	setConfig("password", password)
 	setConfig("output_device", device)
-	setConfig("mixer_name", mixer)
+	setConfig("mixer_control_name", mixer)
 
 	exec.Command("pkill", "shairport-sync").Run()
 	exec.Command("shairport-sync", "-d").Run()

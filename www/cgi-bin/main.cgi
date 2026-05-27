@@ -14,7 +14,7 @@ get_cfg() {
     NAME=$(grep '^name = ' "$CFG" | cut -d'"' -f2)
     PWD=$(grep '^password = ' "$CFG" | cut -d'"' -f2)
     DEV=$(grep '^output_device = ' "$CFG" | sed -E 's/.*"(.*)".*/\1/')
-    MIXER=$(grep '^mixer_name = ' "$CFG" | sed -E 's/.*"(.*)".*/\1/')
+    MIXER=$(grep '^mixer_control_name = ' "$CFG" | sed -E 's/.*"(.*)".*/\1/')
 }
 
 # 3. 读取日志（取最后200行）

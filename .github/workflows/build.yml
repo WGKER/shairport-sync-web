@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
+          cache: false
 
       # 2. 编译 ARM64 静态二进制（无任何依赖）
       - name: Build Go ARM64

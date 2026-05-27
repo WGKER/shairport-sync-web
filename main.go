@@ -156,17 +156,33 @@ func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
 
+	prefix := key + " = "
+
 	for i, line := range lines {
-		lineTrim := strings.TrimSpace(line)
-		if strings.HasPrefix(lineTrim, key+" = ") {
-			if key == "volume_range_db" {
-				// 不加双引号
-				lines[i] = key + ` = ` + val + `;`
-			} else {
-				// 其他都加双引号
-				lines[i] = key + ` = "` + val + `";`
-			}
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, prefix) {
+			continue
 		}
+
+		// 找到分号位置（保留注释）
+		commentIdx := strings.Index(line, ";")
+		var suffix string
+		if commentIdx != -1 {
+			suffix = line[commentIdx:]
+		} else {
+			suffix = ""
+		}
+
+		// 重建这一行：只替换中间的值
+		var newLine string
+		if key == "volume_range_db" {
+			newLine = key + " = " + val + " " + suffix
+		} else {
+			newLine = key + " = \"" + val + "\" " + suffix
+		}
+
+		lines[i] = newLine
+		break
 	}
 	os.WriteFile(configFile, []byte(strings.Join(lines, "\n")), 0644)
 }

@@ -18,19 +18,16 @@ func getShairportSyncVersion() string {
 	if err != nil {
 		return "unknown"
 	}
-// 自动去掉 - 后面的所有内容，只保留主版本号
 	line := strings.TrimSpace(string(out))
 	parts := strings.SplitN(line, "-", 2)
 	if len(parts) > 0 {
 		return parts[0]
 	}
-
 	return "unknown"
 }
 
-// ✅ 官方原生必生效的状态检测（所有 shairport 通用）
+// 播放状态检测
 func getPlayStatus() string {
-	// 检测是否有客户端连接（AirPlay 连接 = 正在播放/暂停）
 	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")
 	out, _ := cmd.CombinedOutput()
 	count := strings.TrimSpace(string(out))
@@ -44,7 +41,7 @@ func getPlayStatus() string {
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
-  http.HandleFunc("/api/status", statusHandler)
+	http.HandleFunc("/api/status", statusHandler)
 	http.ListenAndServe(":8086", nil)
 }
 
@@ -53,13 +50,80 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(getPlayStatus()))
 }
 
+// 读取配置并返回：是否为//注释行 + 实际值
+func getConfigEx(key string) (bool, string) {
+	data, _ := os.ReadFile(configFile)
+	searchStr := key + " = "
+
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+
+		isComment := false
+		cleanLine := trimmed
+
+		if strings.HasPrefix(trimmed, "//") {
+			isComment = true
+			cleanLine = strings.TrimSpace(trimmed[2:])
+		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
+			cleanLine = strings.TrimSpace(trimmed[1:])
+		}
+
+		if strings.HasPrefix(cleanLine, searchStr) {
+			val := strings.TrimPrefix(cleanLine, searchStr)
+
+			if idx := strings.Index(val, ";"); idx != -1 {
+				val = val[:idx]
+			}
+			if idx := strings.Index(val, "#"); idx != -1 {
+				val = val[:idx]
+			}
+			if idx := strings.Index(val, "//"); idx != -1 {
+				val = val[:idx]
+			}
+
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"`)
+			val = strings.Trim(val, `'`)
+			return isComment, val
+		}
+	}
+	return false, ""
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	name := getConfig("name")
-	password := getConfig("password")
-	device := getConfig("output_device")
-	mixer := getConfig("mixer_control_name")
-	volumeRange := getConfig("volume_range_db") // 新增
-	version := getShairportSyncVersion() // 自动获取
+	// 读取配置
+	isNameComment, name := getConfigEx("name")
+	isPwdComment, password := getConfigEx("password")
+	isDevComment, device := getConfigEx("output_device")
+	isMixerComment, mixer := getConfigEx("mixer_control_name")
+isVolComment, volumeRange := getConfigEx("volume_range_db")
+
+	// 如果是//注释，前面加//
+	displayName := name
+	if isNameComment {
+		displayName = "//" + name
+	}
+	displayPwd := password
+	if isPwdComment {
+		displayPwd = "//" + password
+	}
+	displayDevice := device
+	if isDevComment {
+		displayDevice = "//" + device
+	}
+	displayMixer := mixer
+	if isMixerComment {
+		displayMixer = "//" + mixer
+	}
+	displayVol := volumeRange
+	if isVolComment {
+		displayVol = "//" + volumeRange
+	}
+
+	version := getShairportSyncVersion()
 
 html := `
 <html lang="zh-CN">
@@ -74,6 +138,7 @@ html := `
         h2{color:#2c3e50;margin-bottom:20px;text-align:center}
         label{display:block;margin:15px 0 5px;color:#34495e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
+        .gray { color: #999 !important; }
         .btn{
             margin-top:18px;
             padding:10px 24px;
@@ -128,15 +193,20 @@ html := `
         <h2>设置管理面板</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
-            <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">
+            <input type="text" name="name" value="`+displayName+`" class="`+ifTrue(isNameComment, "gray")+`" placeholder="( AirPlay 名称 )">
+            
             <label>连接密码</label>
-			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 Only )">
+			<input type="text" name="password" value="`+displayPwd+`" class="`+ifTrue(isPwdComment, "gray")+`" placeholder="( AirPlay 1 Only )">
+            
             <label>声卡设备</label>
-            <input type="text" name="device" value="`+device+`" placeholder="( hw:0、hw:1 等声卡序号 )">
+            <input type="text" name="device" value="`+displayDevice+`" class="`+ifTrue(isDevComment, "gray")+`" placeholder="( hw:0、hw:1 等声卡序号 )">
+            
             <label>混音器名</label>
-            <input type="text" name="mixer" value="`+mixer+`" placeholder="( PCM、Master 等 )">
+            <input type="text" name="mixer" value="`+displayMixer+`" class="`+ifTrue(isMixerComment, "gray")+`" placeholder="( PCM、Master 等 )">
+            
 			<label>音量范围</label>
-            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
+            <input type="text" name="volume_range_db" value="`+displayVol+`" class="`+ifTrue(isVolComment, "gray")+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
+            
             <button class="btn" type="submit">保存并重启生效</button>
         </form>
     </div>
@@ -149,7 +219,6 @@ html := `
             .then(text=>{
                 const el = document.getElementById("statusText");
                 el.innerText = text;
-                // 播放时：红色闪烁，其他状态：灰色
                 if(text === "PLAYING..."){
                     el.classList.add("blink");
                 }else{

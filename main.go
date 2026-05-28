@@ -47,7 +47,7 @@ func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
 	http.HandleFunc("/api/status", statusHandler)
-	http.ListenAndServe(":8086", ":8086")
+	http.ListenAndServe(":8086", nil)
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shairport Sync 管理面板</title>
+    <title>Shairport Sync 设置</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
@@ -118,7 +118,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
     </div>
 
     <div class="card">
-        <h2>Shairport Sync 管理面板</h2>
+        <h2>Shairport Sync 设置</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">

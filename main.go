@@ -244,7 +244,6 @@ func setConfig(key, val string) {
 		originalLine := line
 
 		// 解析是否为注释行
-		isComment := false
 		cleanLine := trimmed
 		if strings.HasPrefix(trimmed, "//") {
 			cleanLine = strings.TrimSpace(trimmed[2:])

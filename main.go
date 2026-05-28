@@ -104,8 +104,21 @@ html := `
             text-align:center;
         }
         #statusText {
-            font-size: 24px;
+            font-size: 20px;
             color: #999;
+        }
+		/* 彩虹渐变动画 */
+        @keyframes rainbow {
+            0%{color:#ff0000;}
+            16%{color:#ff7f00;}
+            32%{color:#ffff00;}
+            48%{color:#00ff00;}
+            64%{color:#0000ff;}
+            80%{color:#8b00ff;}
+            100%{color:#ff0000;}
+        }
+        .rainbow {
+            animation: rainbow 1.5s infinite linear;
         }
     </style>
 </head>
@@ -138,7 +151,14 @@ html := `
             fetch("/api/status")
             .then(res=>res.text())
             .then(text=>{
-                document.getElementById("statusText").innerText = text;
+                const el = document.getElementById("statusText");
+                el.innerText = text;
+                // 播放时显示彩虹色
+                if(text === "Playing..."){
+                    el.classList.add("rainbow");
+                }else{
+                    el.classList.remove("rainbow");
+                }
             })
         }
         updateStatus();

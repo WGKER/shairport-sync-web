@@ -186,37 +186,6 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", 302)
 }
 
-// 读取配置，自动忽略 ; 开头的注释
-func getConfig(key string) string {
-	data, _ := os.ReadFile(configFile)
-	for _, line := range strings.Split(string(data), "\n") {
-		// 去掉前后空格
-		line = strings.TrimSpace(line)
-
-		// 忽略注释行
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		// 匹配 key = value
-		if strings.HasPrefix(line, key+" = ") {
-			val := strings.TrimPrefix(line, key+" = ")
-
-			// 遇到 ; 就截断，忽略后面的注释
-			if idx := strings.Index(val, ";"); idx != -1 {
-				val = val[:idx]
-			}
-
-			// 去掉引号
-			val = strings.TrimSpace(val)
-			val = strings.Trim(val, `"`)
-			val = strings.Trim(val, `'`)
-			return val
-		}
-	}
-	return ""
-}
-
 // 写入配置
 // 重点：volume_range_db 不加双引号
 // 优化后的读取：支持 // # ; 注释行，都能读到值

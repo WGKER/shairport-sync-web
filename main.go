@@ -25,14 +25,14 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
-// ✅ 真正能检测播放状态的函数（通用所有 shairport 镜像）
+// ✅ 官方原生必生效的状态检测（所有 shairport 通用）
 func getPlayStatus() string {
-	// 检测是否有音频播放（检测 shairport 音频占用状态）
-	cmd := exec.Command("sh", "-c", "pgrep -x shairport-sync >/dev/null && lsof -p $(pgrep -x shairport-sync) | grep -q pcm && echo playing || echo idle")
+	// 检测是否有客户端连接（AirPlay 连接 = 正在播放/暂停）
+	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")
 	out, _ := cmd.CombinedOutput()
-	status := strings.TrimSpace(string(out))
+	count := strings.TrimSpace(string(out))
 
-	if status == "playing" {
+	if count != "0" {
 		return "Playing..."
 	}
 	return "Waiting for playback..."
@@ -63,13 +63,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shairport Sync 管理面板</title>
+    <title>Shairport Sync 设置</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
         .card{background:#fff;border-radius:10px;padding:25px;margin-bottom:20px;box-shadow:0 2px 8px #e0e0e0}
         h2{color:#2c3e50;margin-bottom:20px;text-align:center}
-        label{display:block;margin:15px 0 5px;color:#34495e}
+        label{display:block;margin:15px 0 5px;color:#345e5e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
         .btn{
             margin-top:18px;
@@ -113,7 +113,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
     </div>
 
     <div class="card">
-        <h2>Shairport Sync 管理面板</h2>
+        <h2>Shairport Sync 设置</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">

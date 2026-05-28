@@ -150,7 +150,7 @@ html := `
                 const el = document.getElementById("statusText");
                 el.innerText = text;
                 // 播放时：红色闪烁，其他状态：灰色
-                if(text === "Playing..."){
+                if(text === "PLAYING..."){
                     el.classList.add("blink");
                 }else{
                     el.classList.remove("blink");

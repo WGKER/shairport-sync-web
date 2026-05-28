@@ -321,6 +321,7 @@ func setConfig(key, val string) {
 			// 恢复缩进
 			lines[i] = indent + newLine
 			break
+		}
 	}
 	os.WriteFile(configFile, []byte(strings.Join(lines, "\n")), 0644)
 }

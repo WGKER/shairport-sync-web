@@ -99,7 +99,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	isPwdComment, password := getConfigEx("password")
 	isDevComment, device := getConfigEx("output_device")
 	isMixerComment, mixer := getConfigEx("mixer_control_name")
-isVolComment, volumeRange := getConfigEx("volume_range_db")
+	isVolComment, volumeRange := getConfigEx("volume_range_db")
 
 	// 如果是//注释，前面加//
 	displayName := name
@@ -243,7 +243,7 @@ func ifTrue(cond bool, s string) string {
 	return ""
 }
 
-// 优化：只保存修改过的内容，未修改不写入
+// 优化：未修改则提示并取消保存
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	// 读取表单提交的值
 	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
@@ -259,34 +259,43 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	_, oldMixer := getConfigEx("mixer_control_name")
 	_, oldVolume := getConfigEx("volume_range_db")
 
+	// 检查是否有修改
 	changed := false
+	if newName != oldName || newPassword != oldPassword || newDevice != oldDevice || newMixer != oldMixer || newVolume != oldVolume {
+		changed = true
+	}
 
+	// 未修改 → 弹出提示并返回
+	if !changed {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`
+<script>alert("未检测到修改，已取消保存！");window.location.href='/'</script>
+		`))
+		return
+	}
+
+	// 有修改才执行保存
 	if newName != oldName {
 		setConfig("name", newName)
-		changed = true
 	}
 	if newPassword != oldPassword {
 		setConfig("password", newPassword)
-		changed = true
 	}
 	if newDevice != oldDevice {
 		setConfig("output_device", newDevice)
-		changed = true
 	}
 	if newMixer != oldMixer {
 		setConfig("mixer_control_name", newMixer)
-		changed = true
 	}
 	if newVolume != oldVolume {
 		setConfig("volume_range_db", newVolume)
-		changed = true
 	}
 
-	if changed {
-		exec.Command("pkill", "shairport-sync").Run()
-		exec.Command("shairport-sync", "-d").Run()
-	}
+	// 重启服务
+	exec.Command("pkill", "shairport-sync").Run()
+	exec.Command("shairport-sync", "-d").Run()
 
+	// 返回主页
 	http.Redirect(w, r, "/", 302)
 }
 

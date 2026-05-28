@@ -36,9 +36,9 @@ func getPlayStatus() string {
 	count := strings.TrimSpace(string(out))
 
 	if count != "0" {
-		return "Playing..."
+		return "PLAYING..."
 	}
-	return "Waiting for playback..."
+	return "WAITING FOR PLAYBACK..."
 }
 
 func main() {
@@ -104,21 +104,17 @@ html := `
             text-align:center;
         }
         #statusText {
-            font-size: 20px;
+            font-size: 16px;
             color: #999;
         }
-		/* 彩虹渐变动画 */
-        @keyframes rainbow {
-            0%{color:#ff0000;}
-            16%{color:#ff7f00;}
-            32%{color:#ffff00;}
-            48%{color:#00ff00;}
-            64%{color:#0000ff;}
-            80%{color:#8b00ff;}
-            100%{color:#ff0000;}
+		/* 红色缓慢闪烁动画 */
+        @keyframes red-blink {
+            0% { color: #ff0000; }
+            50% { color: #cc0000; }
+            100% { color: #ff0000; }
         }
-        .rainbow {
-            animation: rainbow 1.5s infinite linear;
+        .blink {
+            animation: red-blink 1.5s infinite ease-in-out;
         }
     </style>
 </head>
@@ -153,11 +149,11 @@ html := `
             .then(text=>{
                 const el = document.getElementById("statusText");
                 el.innerText = text;
-                // 播放时显示彩虹色
+                // 播放时：红色闪烁，其他状态：灰色
                 if(text === "Playing..."){
-                    el.classList.add("rainbow");
+                    el.classList.add("blink");
                 }else{
-                    el.classList.remove("rainbow");
+                    el.classList.remove("blink");
                 }
             })
         }

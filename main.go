@@ -25,9 +25,8 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
-// ✅ 终极实时状态：shairport 原生状态文件，播放/停止 秒级切换
+// 终极实时状态检测（秒切播放/停止，无延迟）
 func getPlayStatus() string {
-	// 检测 shairport 播放状态（实时、无延迟）
 	statusFiles := []string{
 		"/tmp/shairport-sync.status",
 		"/var/run/shairport-sync.status",
@@ -37,14 +36,13 @@ func getPlayStatus() string {
 	for _, f := range statusFiles {
 		if _, err := os.Stat(f); err == nil {
 			data, _ := os.ReadFile(f)
-			s := string(data)
+			s := strings.ToLower(string(data))
 			if strings.Contains(s, "playing") || strings.Contains(s, "connected") || strings.Contains(s, "paused") {
 				return "Playing..."
 			}
 		}
 	}
 
-	// 兜底检测
 	cmd := exec.Command("pgrep", "-x", "shairport-sync")
 	if err := cmd.Run(); err != nil {
 		return "服务未运行"
@@ -159,7 +157,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
     </script>
 </body>
 </html>`
-	w.Header().Set("Content-Type", "text/html", charset=utf-8)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(html))
 }
 

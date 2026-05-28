@@ -167,26 +167,31 @@ html := `
 	w.Write([]byte(html))
 }
 
+func ifTrue(cond bool, s string) string {
+	if cond {
+		return s
+	}
+	return ""
+}
+
 // 优化：只保存修改过的内容，未修改不写入
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	// 读取表单提交的值
-	newName := r.PostFormValue("name")
-	newPassword := r.PostFormValue("password")
-	newDevice := r.PostFormValue("device")
-	newMixer := r.PostFormValue("mixer")
-	newVolume := r.PostFormValue("volume_range_db")
+	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
+	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
+	newDevice := strings.TrimPrefix(r.PostFormValue("device"), "//")
+	newMixer := strings.TrimPrefix(r.PostFormValue("mixer"), "//")
+	newVolume := strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//")
 
 	// 读取原有配置
-	oldName := getConfig("name")
-	oldPassword := getConfig("password")
-	oldDevice := getConfig("output_device")
-	oldMixer := getConfig("mixer_control_name")
-	oldVolume := getConfig("volume_range_db")
+	_, oldName := getConfigEx("name")
+	_, oldPassword := getConfigEx("password")
+	_, oldDevice := getConfigEx("output_device")
+	_, oldMixer := getConfigEx("mixer_control_name")
+	_, oldVolume := getConfigEx("volume_range_db")
 
-	// 标记是否有任何修改
 	changed := false
 
-	// 只在值不同时写入
 	if newName != oldName {
 		setConfig("name", newName)
 		changed = true
@@ -208,53 +213,12 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		changed = true
 	}
 
-	// 只有修改了才重启服务
 	if changed {
 		exec.Command("pkill", "shairport-sync").Run()
 		exec.Command("shairport-sync", "-d").Run()
 	}
 
 	http.Redirect(w, r, "/", 302)
-}
-
-// 读取配置：支持 // # ; 注释行
-func getConfig(key string) string {
-	data, _ := os.ReadFile(configFile)
-	searchStr := key + " = "
-
-	for _, line := range strings.Split(string(data), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-
-		cleanLine := trimmed
-		if strings.HasPrefix(trimmed, "//") {
-			cleanLine = strings.TrimSpace(trimmed[2:])
-		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
-			cleanLine = strings.TrimSpace(trimmed[1:])
-		}
-
-		if strings.HasPrefix(cleanLine, searchStr) {
-			val := strings.TrimPrefix(cleanLine, searchStr)
-
-			if idx := strings.Index(val, ";"); idx != -1 {
-				val = val[:idx]
-			}
-			if idx := strings.Index(val, "#"); idx != -1 {
-				val = val[:idx]
-			}
-			if idx := strings.Index(val, "//"); idx != -1 {
-				val = val[:idx]
-			}
-
-			val = strings.TrimSpace(val)
-			val = strings.Trim(val, `"`)
-			val = strings.Trim(val, `'`)
-			return val
-		}
-	}
-	return ""
 }
 
 // 写入配置：自动取消 // 注释

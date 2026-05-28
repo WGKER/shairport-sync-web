@@ -167,41 +167,67 @@ html := `
 	w.Write([]byte(html))
 }
 
+// 优化：只保存修改过的内容，未修改不写入
 func saveHandler(w http.ResponseWriter, r *http.Request) {
-	name := r.PostFormValue("name")
-	password := r.PostFormValue("password")
-	device := r.PostFormValue("device")
-	mixer := r.PostFormValue("mixer")
-  volumeRange := r.PostFormValue("volume_range_db")
+	// 读取表单提交的值
+	newName := r.PostFormValue("name")
+	newPassword := r.PostFormValue("password")
+	newDevice := r.PostFormValue("device")
+	newMixer := r.PostFormValue("mixer")
+	newVolume := r.PostFormValue("volume_range_db")
 
-	setConfig("name", name)
-	setConfig("password", password)
-	setConfig("output_device", device)
-	setConfig("mixer_control_name", mixer)
-  setConfig("volume_range_db", volumeRange)
+	// 读取原有配置
+	oldName := getConfig("name")
+	oldPassword := getConfig("password")
+	oldDevice := getConfig("output_device")
+	oldMixer := getConfig("mixer_control_name")
+	oldVolume := getConfig("volume_range_db")
 
-	exec.Command("pkill", "shairport-sync").Run()
-	exec.Command("shairport-sync", "-d").Run()
+	// 标记是否有任何修改
+	changed := false
+
+	// 只在值不同时写入
+	if newName != oldName {
+		setConfig("name", newName)
+		changed = true
+	}
+	if newPassword != oldPassword {
+		setConfig("password", newPassword)
+		changed = true
+	}
+	if newDevice != oldDevice {
+		setConfig("output_device", newDevice)
+		changed = true
+	}
+	if newMixer != oldMixer {
+		setConfig("mixer_control_name", newMixer)
+		changed = true
+	}
+	if newVolume != oldVolume {
+		setConfig("volume_range_db", newVolume)
+		changed = true
+	}
+
+	// 只有修改了才重启服务
+	if changed {
+		exec.Command("pkill", "shairport-sync").Run()
+		exec.Command("shairport-sync", "-d").Run()
+	}
 
 	http.Redirect(w, r, "/", 302)
 }
 
-// 写入配置
-// 重点：volume_range_db 不加双引号
-// 优化后的读取：支持 // # ; 注释行，都能读到值
+// 读取配置：支持 // # ; 注释行
 func getConfig(key string) string {
 	data, _ := os.ReadFile(configFile)
 	searchStr := key + " = "
 
 	for _, line := range strings.Split(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
-
-		// 跳过空行
 		if trimmed == "" {
 			continue
 		}
 
-		// 去掉行首注释符号 // # ; 后再检查
 		cleanLine := trimmed
 		if strings.HasPrefix(trimmed, "//") {
 			cleanLine = strings.TrimSpace(trimmed[2:])
@@ -209,11 +235,9 @@ func getConfig(key string) string {
 			cleanLine = strings.TrimSpace(trimmed[1:])
 		}
 
-		// 匹配配置项
 		if strings.HasPrefix(cleanLine, searchStr) {
 			val := strings.TrimPrefix(cleanLine, searchStr)
 
-			// 去掉行尾注释
 			if idx := strings.Index(val, ";"); idx != -1 {
 				val = val[:idx]
 			}
@@ -233,7 +257,7 @@ func getConfig(key string) string {
 	return ""
 }
 
-// 优化后的写入：自动取消 // 注释，保存后变成有效配置行
+// 写入配置：自动取消 // 注释
 func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
@@ -243,7 +267,6 @@ func setConfig(key, val string) {
 		trimmed := strings.TrimSpace(line)
 		originalLine := line
 
-		// 解析是否为注释行
 		cleanLine := trimmed
 		if strings.HasPrefix(trimmed, "//") {
 			cleanLine = strings.TrimSpace(trimmed[2:])
@@ -251,15 +274,12 @@ func setConfig(key, val string) {
 			cleanLine = strings.TrimSpace(trimmed[1:])
 		}
 
-		// 找到目标配置项
 		if strings.HasPrefix(cleanLine, prefix) {
-			// 保留原始缩进
 			indent := ""
 			if len(originalLine) > len(trimmed) {
 				indent = originalLine[:len(originalLine)-len(trimmed)]
 			}
 
-			// 保留行尾注释
 			commentPart := ""
 			commentIdx := -1
 			if idx := strings.Index(cleanLine, ";"); idx != -1 {
@@ -273,7 +293,6 @@ func setConfig(key, val string) {
 				commentPart = strings.TrimSpace(cleanLine[commentIdx:])
 			}
 
-			// 构建新行：如果是 // 注释，自动取消注释
 			var newLine string
 			if key == "volume_range_db" {
 				newLine = key + " = " + val
@@ -284,7 +303,6 @@ func setConfig(key, val string) {
 				newLine += " " + commentPart
 			}
 
-			// 恢复缩进
 			lines[i] = indent + newLine
 			break
 		}

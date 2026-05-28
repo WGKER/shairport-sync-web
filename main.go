@@ -25,19 +25,14 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
+// ✅ 真正能检测播放状态的函数（通用所有 shairport 镜像）
 func getPlayStatus() string {
-	cmd := exec.Command("pgrep", "-f", "shairport-sync -d")
-	if err := cmd.Run(); err != nil {
-		return "服务未运行"
-	}
+	// 检测是否有音频播放（检测 shairport 音频占用状态）
+	cmd := exec.Command("sh", "-c", "pgrep -x shairport-sync >/dev/null && lsof -p $(pgrep -x shairport-sync) | grep -q pcm && echo playing || echo idle")
+	out, _ := cmd.CombinedOutput()
+	status := strings.TrimSpace(string(out))
 
-	cmd2 := exec.Command("shairport-sync", "-s")
-	out, err := cmd2.CombinedOutput()
-	if err != nil {
-		return "Waiting for playback..."
-	}
-	res := strings.ToLower(string(out))
-	if strings.Contains(res, "playing") || strings.Contains(res, "connected") {
+	if status == "playing" {
 		return "Playing..."
 	}
 	return "Waiting for playback..."
@@ -68,7 +63,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shairport Sync 设置</title>
+    <title>Shairport Sync 管理面板</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
@@ -118,7 +113,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
     </div>
 
     <div class="card">
-        <h2>Shairport Sync 设置</h2>
+        <h2>Shairport Sync 管理面板</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">

@@ -104,7 +104,7 @@ html := `
             text-align:center;
         }
         #statusText {
-            font-size: 16px;
+            font-size: 13px;
             color: #999;
         }
 		/* 红色缓慢闪烁动画 */
@@ -219,37 +219,108 @@ func getConfig(key string) string {
 
 // 写入配置
 // 重点：volume_range_db 不加双引号
+// 优化后的读取：支持 // # ; 注释行，都能读到值
+func getConfig(key string) string {
+	data, _ := os.ReadFile(configFile)
+	searchStr := key + " = "
+
+	for _, line := range strings.Split(string(data), "\n") {
+		trimmed := strings.TrimSpace(line)
+
+		// 跳过空行
+		if trimmed == "" {
+			continue
+		}
+
+		// 去掉行首注释符号 // # ; 后再检查
+		cleanLine := trimmed
+		if strings.HasPrefix(trimmed, "//") {
+			cleanLine = strings.TrimSpace(trimmed[2:])
+		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
+			cleanLine = strings.TrimSpace(trimmed[1:])
+		}
+
+		// 匹配配置项
+		if strings.HasPrefix(cleanLine, searchStr) {
+			val := strings.TrimPrefix(cleanLine, searchStr)
+
+			// 去掉行尾注释
+			if idx := strings.Index(val, ";"); idx != -1 {
+				val = val[:idx]
+			}
+			if idx := strings.Index(val, "#"); idx != -1 {
+				val = val[:idx]
+			}
+			if idx := strings.Index(val, "//"); idx != -1 {
+				val = val[:idx]
+			}
+
+			val = strings.TrimSpace(val)
+			val = strings.Trim(val, `"`)
+			val = strings.Trim(val, `'`)
+			return val
+		}
+	}
+	return ""
+}
+
+// 优化后的写入：自动取消 // 注释，保存后变成有效配置行
 func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
-
 	prefix := key + " = "
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, prefix) {
-			continue
+		originalLine := line
+
+		// 解析是否为注释行
+		isComment := false
+		cleanLine := trimmed
+		if strings.HasPrefix(trimmed, "//") {
+			cleanLine = strings.TrimSpace(trimmed[2:])
+			isComment = true
+		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
+			cleanLine = strings.TrimSpace(trimmed[1:])
+			isComment = true
 		}
 
-		// 找到分号位置（保留注释）
-		commentIdx := strings.Index(line, ";")
-		var suffix string
-		if commentIdx != -1 {
-			suffix = line[commentIdx:]
-		} else {
-			suffix = ""
-		}
+		// 找到目标配置项
+		if strings.HasPrefix(cleanLine, prefix) {
+			// 保留原始缩进
+			indent := ""
+			if len(originalLine) > len(trimmed) {
+				indent = originalLine[:len(originalLine)-len(trimmed)]
+			}
 
-		// 重建这一行：只替换中间的值
-		var newLine string
-		if key == "volume_range_db" {
-			newLine = key + " = " + val + " " + suffix
-		} else {
-			newLine = key + " = \"" + val + "\" " + suffix
-		}
+			// 保留行尾注释
+			commentPart := ""
+			commentIdx := -1
+			if idx := strings.Index(cleanLine, ";"); idx != -1 {
+				commentIdx = idx
+			} else if idx := strings.Index(cleanLine, "#"); idx != -1 {
+				commentIdx = idx
+			} else if idx := strings.Index(cleanLine, "//"); idx != -1 {
+				commentIdx = idx
+			}
+			if commentIdx != -1 {
+				commentPart = strings.TrimSpace(cleanLine[commentIdx:])
+			}
 
-		lines[i] = newLine
-		break
+			// 构建新行：如果是 // 注释，自动取消注释
+			var newLine string
+			if key == "volume_range_db" {
+				newLine = key + " = " + val
+			} else {
+				newLine = key + " = \"" + val + "\""
+			}
+			if commentPart != "" {
+				newLine += " " + commentPart
+			}
+
+			// 恢复缩进
+			lines[i] = indent + newLine
+			break
 	}
 	os.WriteFile(configFile, []byte(strings.Join(lines, "\n")), 0644)
 }

@@ -25,13 +25,14 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
-// ✅ 最简最稳：只检测是否有 active 连接，实时秒切
+// ✅ 官方原生必生效的状态检测（所有 shairport 通用）
 func getPlayStatus() string {
-	cmd := exec.Command("sh", "-c", "grep -r \"active = 1\" /tmp/shairport-sync.* 2>/dev/null | wc -l")
+	// 检测是否有客户端连接（AirPlay 连接 = 正在播放/暂停）
+	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")
 	out, _ := cmd.CombinedOutput()
-	res := strings.TrimSpace(string(out))
+	count := strings.TrimSpace(string(out))
 
-	if res == "1" {
+	if count != "0" {
 		return "Playing..."
 	}
 	return "Waiting for playback..."
@@ -68,7 +69,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
         .card{background:#fff;border-radius:10px;padding:25px;margin-bottom:20px;box-shadow:0 2px 8px #e0e0e0}
         h2{color:#2c3e50;margin-bottom:20px;text-align:center}
-        label{display:block;margin:15px 0 5px;color:#34495e}
+        label{display:block;margin:15px 0 5px;color:#345e5e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
         .btn{
             margin-top:18px;
@@ -94,36 +95,36 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
         .status-box {
             background: #fff;
             border-radius: 10px;
-            box-shadow:0 2px 8px #e0e0e0;
+            box-shadow: 0 2px 8px #e0e0e0;
             padding:25px;
             margin-bottom:20px;
             text-align:center;
         }
         #statusText {
-            font-size:24px;
-            color:#999;
+            font-size: 24px;
+            color: #999;
         }
     </style>
 </head>
 <body>
     <div class="status-box">
         <h2>当前播放状态</h2>
-        <div id="statusText">加载中...</div>
+        <div id="statusText">状态加载中...</div>
     </div>
 
     <div class="card">
         <h2>Shairport Sync 管理面板</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
-            <input type="text" name="name" value="`+name+`" placeholder="AirPlay 名称">
+            <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">
             <label>连接密码</label>
-			<input type="text" name="password" value="`+password+`" placeholder="AirPlay 1 专用">
+			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 Only )">
             <label>声卡设备</label>
-            <input type="text" name="device" value="`+device+`" placeholder="hw:0、hw:1">
+            <input type="text" name="device" value="`+device+`" placeholder="( hw:0、hw:1 等声卡序号 )">
             <label>混音器名</label>
-            <input type="text" name="mixer" value="`+mixer+`" placeholder="PCM、Master">
+            <input type="text" name="mixer" value="`+mixer+`" placeholder="( PCM、Master 等 )">
 			<label>音量范围</label>
-            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="30~150 dB">
+            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
             <button class="btn" type="submit">保存并重启生效</button>
         </form>
     </div>
@@ -143,7 +144,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
     </script>
 </body>
 </html>`
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write([]byte(html))
 }

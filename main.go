@@ -25,29 +25,15 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
-// 终极实时状态检测（秒切播放/停止，无延迟）
+// ✅ 最简最稳：只检测是否有 active 连接，实时秒切
 func getPlayStatus() string {
-	statusFiles := []string{
-		"/tmp/shairport-sync.status",
-		"/var/run/shairport-sync.status",
-		"/run/shairport-sync.status",
-	}
+	cmd := exec.Command("sh", "-c", "grep -r \"active = 1\" /tmp/shairport-sync.* 2>/dev/null | wc -l")
+	out, _ := cmd.CombinedOutput()
+	res := strings.TrimSpace(string(out))
 
-	for _, f := range statusFiles {
-		if _, err := os.Stat(f); err == nil {
-			data, _ := os.ReadFile(f)
-			s := strings.ToLower(string(data))
-			if strings.Contains(s, "playing") || strings.Contains(s, "connected") || strings.Contains(s, "paused") {
-				return "Playing..."
-			}
-		}
+	if res == "1" {
+		return "Playing..."
 	}
-
-	cmd := exec.Command("pgrep", "-x", "shairport-sync")
-	if err := cmd.Run(); err != nil {
-		return "服务未运行"
-	}
-
 	return "Waiting for playback..."
 }
 
@@ -108,36 +94,36 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
         .status-box {
             background: #fff;
             border-radius: 10px;
-            box-shadow: 0 2px 8px #e0e0e0;
+            box-shadow:0 2px 8px #e0e0e0;
             padding:25px;
             margin-bottom:20px;
             text-align:center;
         }
         #statusText {
-            font-size: 24px;
-            color: #999;
+            font-size:24px;
+            color:#999;
         }
     </style>
 </head>
 <body>
     <div class="status-box">
         <h2>当前播放状态</h2>
-        <div id="statusText">状态加载中...</div>
+        <div id="statusText">加载中...</div>
     </div>
 
     <div class="card">
         <h2>Shairport Sync 管理面板</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
-            <input type="text" name="name" value="`+name+`" placeholder="( AirPlay 名称 )">
+            <input type="text" name="name" value="`+name+`" placeholder="AirPlay 名称">
             <label>连接密码</label>
-			<input type="text" name="password" value="`+password+`" placeholder="( AirPlay 1 Only )">
+			<input type="text" name="password" value="`+password+`" placeholder="AirPlay 1 专用">
             <label>声卡设备</label>
-            <input type="text" name="device" value="`+device+`" placeholder="( hw:0、hw:1 等声卡序号 )">
+            <input type="text" name="device" value="`+device+`" placeholder="hw:0、hw:1">
             <label>混音器名</label>
-            <input type="text" name="mixer" value="`+mixer+`" placeholder="( PCM、Master 等 )">
+            <input type="text" name="mixer" value="`+mixer+`" placeholder="PCM、Master">
 			<label>音量范围</label>
-            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
+            <input type="text" name="volume_range_db" value="`+volumeRange+`" placeholder="30~150 dB">
             <button class="btn" type="submit">保存并重启生效</button>
         </form>
     </div>

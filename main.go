@@ -247,10 +247,8 @@ func setConfig(key, val string) {
 		cleanLine := trimmed
 		if strings.HasPrefix(trimmed, "//") {
 			cleanLine = strings.TrimSpace(trimmed[2:])
-			isComment = true
 		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
 			cleanLine = strings.TrimSpace(trimmed[1:])
-			isComment = true
 		}
 
 		// 找到目标配置项

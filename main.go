@@ -172,7 +172,7 @@ html := `
         }
         /* Flex垂直居中，固定图片占位高度，不会跳动 */
         .img-wrap {
-            min-height: 65px;
+            min-height: 55px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -185,8 +185,8 @@ html := `
             visibility: hidden;
         }
         #statusText {
-            font-size: 16px;
-            color: #333;
+            font-size: 12px;
+            color: #666;
         }
     </style>
 </head>

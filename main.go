@@ -12,6 +12,7 @@ const (
 	staticDir  = "./static"
 )
 
+// 从 shairport-sync -V 自动获取版本号
 func getShairportSyncVersion() string {
 	cmd := exec.Command("shairport-sync", "-V")
 	out, err := cmd.CombinedOutput()
@@ -26,10 +27,12 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
+// 【完全沿用你原来正常工作的netstat检测逻辑，仅修改返回标识】
 func getPlayStatus() string {
 	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")
 	out, _ := cmd.CombinedOutput()
 	count := strings.TrimSpace(string(out))
+
 	if count != "0" {
 		return "playing"
 	}
@@ -37,6 +40,7 @@ func getPlayStatus() string {
 }
 
 func main() {
+	// 静态图片路由，处理gif/png MIME
 	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir)))
 	fixedStatic := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, ".gif") {
@@ -61,24 +65,30 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(getPlayStatus()))
 }
 
+// 读取配置并返回：是否为//注释行 + 实际值
 func getConfigEx(key string) (bool, string) {
 	data, _ := os.ReadFile(configFile)
 	searchStr := key + " = "
+
 	for _, line := range strings.Split(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue
 		}
+
 		isComment := false
 		cleanLine := trimmed
+
 		if strings.HasPrefix(trimmed, "//") {
 			isComment = true
 			cleanLine = strings.TrimSpace(trimmed[2:])
 		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
 			cleanLine = strings.TrimSpace(trimmed[1:])
 		}
+
 		if strings.HasPrefix(cleanLine, searchStr) {
 			val := strings.TrimPrefix(cleanLine, searchStr)
+
 			if idx := strings.Index(val, ";"); idx != -1 {
 				val = val[:idx]
 			}
@@ -88,6 +98,7 @@ func getConfigEx(key string) (bool, string) {
 			if idx := strings.Index(val, "//"); idx != -1 {
 				val = val[:idx]
 			}
+
 			val = strings.TrimSpace(val)
 			val = strings.Trim(val, `"`)
 			val = strings.Trim(val, `'`)
@@ -98,6 +109,7 @@ func getConfigEx(key string) (bool, string) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	// 读取配置
 	isNameComment, name := getConfigEx("name")
 	isPwdComment, password := getConfigEx("password")
 	isDevComment, device := getConfigEx("output_device")
@@ -170,7 +182,7 @@ html := `
             margin-bottom:20px;
             text-align:center;
         }
-        /* Flex垂直居中，固定图片占位高度，不会跳动 */
+        /* 适配134*43小图，紧凑间距 */
         .img-wrap {
             min-height: 55px;
             display: flex;
@@ -181,7 +193,6 @@ html := `
         .status-img {
             width: 120px;
             height: auto;
-            /* visibility隐藏不破坏布局，display永久block保证居中 */
             visibility: hidden;
         }
         #statusText {
@@ -193,8 +204,7 @@ html := `
 <body>
     <div class="status-box">
         <h2>播放状态</h2>
-        <!-- 图片父容器固定高度，永久居中 -->
-        <div class="img-wrap">
+        <div class="img-wrap" id="imgContainer">
             <img id="statusImg" class="status-img" alt="状态图">
         </div>
         <div id="statusText">状态加载中...</div>
@@ -224,18 +234,19 @@ html := `
 	<div class="version">Shairport Sync 版本：`+version+`</div>
 
     <script>
-        const imgEl = document.getElementById("statusImg");
-        const imgWrap = document.querySelector(".img-wrap");
+        const container = document.getElementById("imgContainer");
+        let imgEl = document.getElementById("statusImg");
         const textEl = document.getElementById("statusText");
         function updateStatus(){
             fetch("/api/status")
             .then(res=>res.text())
             .then(state=>{
-                // 克隆DOM节点，彻底重置GIF播放帧，解决只播前1秒
-                const newImg = imgEl.cloneNode(false);
-                imgWrap.replaceChild(newImg, imgEl);
-                // 同步更新全局imgEl引用
-                window.imgEl = newImg;
+                // 每次重建图片DOM，重置GIF完整循环
+                const newImg = document.createElement("img");
+                newImg.className = "status-img";
+                container.innerHTML = "";
+                container.appendChild(newImg);
+                imgEl = newImg;
                 if(state === "playing"){
                     newImg.src = "/static/playing.gif";
                     newImg.style.visibility = "visible";
@@ -248,6 +259,9 @@ html := `
                     newImg.style.visibility = "hidden";
                     textEl.innerText = "状态加载中...";
                 }
+            })
+            .catch(err=>{
+                textEl.innerText = "状态获取失败";
             })
         }
         updateStatus();
@@ -267,6 +281,7 @@ func ifTrue(cond bool, s string) string {
 	return ""
 }
 
+// 优化：未修改则提示并取消保存
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
 	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
@@ -309,29 +324,35 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		setConfig("volume_range_db", newVolume)
 	}
 
+	// 重启服务
 	exec.Command("pkill", "shairport-sync").Run()
 	exec.Command("shairport-sync", "-d").Run()
 	http.Redirect(w, r, "/", 302)
 }
 
+// 写入配置：自动取消 // 注释
 func setConfig(key, val string) {
 	data, _ := os.ReadFile(configFile)
 	lines := strings.Split(string(data), "\n")
 	prefix := key + " = "
+
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		originalLine := line
+
 		cleanLine := trimmed
 		if strings.HasPrefix(trimmed, "//") {
 			cleanLine = strings.TrimSpace(trimmed[2:])
 		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
 			cleanLine = strings.TrimSpace(trimmed[1:])
 		}
+
 		if strings.HasPrefix(cleanLine, prefix) {
 			indent := ""
 			if len(originalLine) > len(trimmed) {
 				indent = originalLine[:len(originalLine)-len(trimmed)]
 			}
+
 			commentPart := ""
 			commentIdx := -1
 			if idx := strings.Index(cleanLine, ";"); idx != -1 {
@@ -344,6 +365,7 @@ func setConfig(key, val string) {
 			if commentIdx != -1 {
 				commentPart = strings.TrimSpace(cleanLine[commentIdx:])
 			}
+
 			var newLine string
 			if key == "volume_range_db" {
 				newLine = key + " = " + val
@@ -353,6 +375,7 @@ func setConfig(key, val string) {
 			if commentPart != "" {
 				newLine += " " + commentPart
 			}
+
 			lines[i] = indent + newLine
 			break
 		}

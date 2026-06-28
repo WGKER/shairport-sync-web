@@ -185,7 +185,7 @@ html := `
             visibility: hidden;
         }
         #statusText {
-            font-size: 12px;
+            font-size: 14px;
             color: #666;
         }
     </style>

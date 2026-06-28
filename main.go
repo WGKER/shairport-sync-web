@@ -127,7 +127,7 @@ html := `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShairportSync设置</title>
+    <title>Shairport-Sync管理面板</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
@@ -185,7 +185,7 @@ html := `
     </div>
     
     <div class="card">
-        <h2>配置管理</h2>
+        <h2>参数配置</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+displayName+`" class="`+ifTrue(isNameComment, "gray")+`" placeholder="( AirPlay 名称 )">

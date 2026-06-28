@@ -33,9 +33,9 @@ func getPlayStatus() string {
 	count := strings.TrimSpace(string(out))
 
 	if count != "0" {
-		return "PLAYING..."
+		return "正在播放..."
 	}
-	return "WAITING FOR PLAYBACK..."
+	return "准备就绪..."
 }
 
 func main() {
@@ -130,7 +130,7 @@ html := `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>设置管理面板</title>
+    <title>ShairportSync设置</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
@@ -185,12 +185,12 @@ html := `
 </head>
 <body>
     <div class="status-box">
-        <h2>当前播放状态</h2>
+        <h2>播放状态</h2>
         <div id="statusText">状态加载中...</div>
     </div>
     
     <div class="card">
-        <h2>设置管理面板</h2>
+        <h2>配置管理</h2>
         <form method="post" action="/save" onsubmit="return confirm('确定要保存并重启吗？\n重启后配置才会生效！')">
             <label>设备名称</label>
             <input type="text" name="name" value="`+displayName+`" class="`+ifTrue(isNameComment, "gray")+`" placeholder="( AirPlay 名称 )">
@@ -210,7 +210,7 @@ html := `
             <button class="btn" type="submit">保存并重启生效</button>
         </form>
     </div>
-	<div class="version">Shairport Sync 版本： `+version+`</div>
+	<div class="version">Shairport Sync 版本：`+version+`</div>
 
     <script>
         function updateStatus(){

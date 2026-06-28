@@ -40,8 +40,22 @@ func getPlayStatus() string {
 }
 
 func main() {
-	// 静态文件路由，映射/static/访问静态文件夹图片
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir))))
+	// 静态文件中间件：修正MIME、完整读取图片，防止GIF传输残缺
+	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir)))
+	fixedStatic := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// 强制GIF正确MIME类型
+		if strings.HasSuffix(r.URL.Path, ".gif") {
+			w.Header().Set("Content-Type", "image/gif")
+		}
+		if strings.HasSuffix(r.URL.Path, ".png") {
+			w.Header().Set("Content-Type", "image/png")
+		}
+		// 短期缓存，配合前端时间戳刷新
+		w.Header().Set("Cache-Control", "max-age=1")
+		staticHandler.ServeHTTP(w, r)
+	})
+	http.Handle("/static/", fixedStatic)
+
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
 	http.HandleFunc("/api/status", statusHandler)
@@ -185,9 +199,7 @@ html := `
 <body>
     <div class="status-box">
         <h2>播放状态</h2>
-        <!-- 初始src为空，加载中不显示图片 -->
-        <img id="statusImg" class="status-img" src="" alt="状态图">
-        <!-- 状态文字 -->
+        <img id="statusImg" class="status-img" style="display:none;" alt="状态图">
         <div id="statusText">状态加载中...</div>
     </div>
     
@@ -221,12 +233,23 @@ html := `
             fetch("/api/status")
             .then(res=>res.text())
             .then(state=>{
+                // 先隐藏图片，重置动画
+                imgEl.style.display = "none";
+                const timestamp = Date.now(); // 时间戳，强制刷新GIF
                 if(state === "playing"){
-                    imgEl.src = "/static/playing.gif";
+                    // 拼接时间戳，每次全新加载完整GIF
+                    imgEl.src = `/static/playing.gif?t=${timestamp}`;
                     textEl.innerText = "正在播放";
+                    // 图片加载完成后再显示，保证完整帧
+                    imgEl.onload = ()=>{
+                        imgEl.style.display = "block";
+                    }
                 }else if(state === "ready"){
-                    imgEl.src = "/static/ready.png";
+                    imgEl.src = `/static/ready.png?t=${timestamp}`;
                     textEl.innerText = "准备就绪";
+                    imgEl.onload = ()=>{
+                        imgEl.style.display = "block";
+                    }
                 }
             })
         }

@@ -172,11 +172,11 @@ html := `
         }
         /* Flex垂直居中，固定图片占位高度，不会跳动 */
         .img-wrap {
-            min-height: 140px;
+            min-height: 65px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 3px;
         }
         .status-img {
             width: 120px;

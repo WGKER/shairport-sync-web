@@ -207,7 +207,7 @@ html := `
         <div class="img-wrap" id="imgContainer">
             <img id="statusImg" class="status-img" alt="状态图">
         </div>
-        <div id="statusText">状态加载中...</div>
+        <div id="statusText">（状态加载中...）</div>
     </div>
     
     <div class="card">
@@ -250,18 +250,18 @@ html := `
                 if(state === "playing"){
                     newImg.src = "/static/playing.gif";
                     newImg.style.visibility = "visible";
-                    textEl.innerText = "正在播放";
+                    textEl.innerText = "（正在播放）";
                 }else if(state === "ready"){
                     newImg.src = "/static/ready.png";
                     newImg.style.visibility = "visible";
-                    textEl.innerText = "准备就绪";
+                    textEl.innerText = "（准备就绪）";
                 }else{
                     newImg.style.visibility = "hidden";
-                    textEl.innerText = "状态加载中...";
+                    textEl.innerText = "（状态加载中...）";
                 }
             })
             .catch(err=>{
-                textEl.innerText = "状态获取失败";
+                textEl.innerText = "（状态获取失败）";
             })
         }
         updateStatus();

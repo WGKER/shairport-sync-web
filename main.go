@@ -188,7 +188,7 @@ html := `
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-bottom: 1px;
+            margin-bottom: 3px;
         }
         .status-img {
             width: 120px;

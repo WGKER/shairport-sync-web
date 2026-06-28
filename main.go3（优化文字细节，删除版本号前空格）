@@ -9,7 +9,6 @@ import (
 
 const (
 	configFile = "/etc/shairport-sync.conf"
-	staticDir  = "./static"
 )
 
 // 从 shairport-sync -V 自动获取版本号
@@ -27,33 +26,19 @@ func getShairportSyncVersion() string {
 	return "unknown"
 }
 
-// 【完全沿用你原来正常工作的netstat检测逻辑，仅修改返回标识】
+// 播放状态检测
 func getPlayStatus() string {
 	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")
 	out, _ := cmd.CombinedOutput()
 	count := strings.TrimSpace(string(out))
 
 	if count != "0" {
-		return "playing"
+		return "正在播放..."
 	}
-	return "ready"
+	return "准备就绪..."
 }
 
 func main() {
-	// 静态图片路由，处理gif/png MIME
-	staticHandler := http.StripPrefix("/static/", http.FileServer(http.Dir(staticDir)))
-	fixedStatic := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, ".gif") {
-			w.Header().Set("Content-Type", "image/gif")
-		}
-		if strings.HasSuffix(r.URL.Path, ".png") {
-			w.Header().Set("Content-Type", "image/png")
-		}
-		w.Header().Set("Cache-Control", "max-age=1")
-		staticHandler.ServeHTTP(w, r)
-	})
-	http.Handle("/static/", fixedStatic)
-
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/save", saveHandler)
 	http.HandleFunc("/api/status", statusHandler)
@@ -116,6 +101,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	isMixerComment, mixer := getConfigEx("mixer_control_name")
 	isVolComment, volumeRange := getConfigEx("volume_range_db")
 
+	// 如果是//注释，前面加//
 	displayName := name
 	if isNameComment {
 		displayName = "//" + name
@@ -149,7 +135,7 @@ html := `
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
         .card{background:#fff;border-radius:10px;padding:25px;margin-bottom:20px;box-shadow:0 2px 8px #e0e0e0}
-        h2{color:#2c3e50;margin-bottom:10px;text-align:center}
+        h2{color:#2c3e50;margin-bottom:20px;text-align:center}
         label{display:block;margin:15px 0 5px;color:#34495e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
         .gray { color: #999 !important; }
@@ -182,31 +168,24 @@ html := `
             margin-bottom:20px;
             text-align:center;
         }
-        /* 适配134*43小图，紧凑间距 */
-        .img-wrap {
-            min-height: 55px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 1px;
-        }
-        .status-img {
-            width: 120px;
-            height: auto;
-            visibility: hidden;
-        }
         #statusText {
-            font-size: 14px;
-            color: #666;
+            font-size: 13px;
+            color: #999;
+        }
+		/* 红色缓慢闪烁动画 */
+        @keyframes red-blink {
+            0% { color: #ff0000; }
+            50% { color: #cc0000; }
+            100% { color: #ff0000; }
+        }
+        .blink {
+            animation: red-blink 1.5s infinite ease-in-out;
         }
     </style>
 </head>
 <body>
     <div class="status-box">
         <h2>播放状态</h2>
-        <div class="img-wrap" id="imgContainer">
-            <img id="statusImg" class="status-img" alt="状态图">
-        </div>
         <div id="statusText">状态加载中...</div>
     </div>
     
@@ -234,34 +213,17 @@ html := `
 	<div class="version">Shairport Sync 版本：`+version+`</div>
 
     <script>
-        const container = document.getElementById("imgContainer");
-        let imgEl = document.getElementById("statusImg");
-        const textEl = document.getElementById("statusText");
         function updateStatus(){
             fetch("/api/status")
             .then(res=>res.text())
-            .then(state=>{
-                // 每次重建图片DOM，重置GIF完整循环
-                const newImg = document.createElement("img");
-                newImg.className = "status-img";
-                container.innerHTML = "";
-                container.appendChild(newImg);
-                imgEl = newImg;
-                if(state === "playing"){
-                    newImg.src = "/static/playing.gif";
-                    newImg.style.visibility = "visible";
-                    textEl.innerText = "正在播放";
-                }else if(state === "ready"){
-                    newImg.src = "/static/ready.png";
-                    newImg.style.visibility = "visible";
-                    textEl.innerText = "准备就绪";
+            .then(text=>{
+                const el = document.getElementById("statusText");
+                el.innerText = text;
+                if(text === "PLAYING..."){
+                    el.classList.add("blink");
                 }else{
-                    newImg.style.visibility = "hidden";
-                    textEl.innerText = "状态加载中...";
+                    el.classList.remove("blink");
                 }
-            })
-            .catch(err=>{
-                textEl.innerText = "状态获取失败";
             })
         }
         updateStatus();
@@ -283,23 +245,27 @@ func ifTrue(cond bool, s string) string {
 
 // 优化：未修改则提示并取消保存
 func saveHandler(w http.ResponseWriter, r *http.Request) {
+	// 读取表单提交的值
 	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
 	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
 	newDevice := strings.TrimPrefix(r.PostFormValue("device"), "//")
 	newMixer := strings.TrimPrefix(r.PostFormValue("mixer"), "//")
 	newVolume := strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//")
 
+	// 读取原有配置
 	_, oldName := getConfigEx("name")
 	_, oldPassword := getConfigEx("password")
 	_, oldDevice := getConfigEx("output_device")
 	_, oldMixer := getConfigEx("mixer_control_name")
 	_, oldVolume := getConfigEx("volume_range_db")
 
+	// 检查是否有修改
 	changed := false
 	if newName != oldName || newPassword != oldPassword || newDevice != oldDevice || newMixer != oldMixer || newVolume != oldVolume {
 		changed = true
 	}
 
+	// 未修改 → 弹出提示并返回
 	if !changed {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(`
@@ -308,6 +274,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 有修改才执行保存
 	if newName != oldName {
 		setConfig("name", newName)
 	}
@@ -327,6 +294,8 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	// 重启服务
 	exec.Command("pkill", "shairport-sync").Run()
 	exec.Command("shairport-sync", "-d").Run()
+
+	// 返回主页
 	http.Redirect(w, r, "/", 302)
 }
 

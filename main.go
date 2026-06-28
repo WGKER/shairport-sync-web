@@ -149,7 +149,7 @@ html := `
         *{margin:0;padding:0;box-sizing:border-box;font-family:Microsoft Yahei,sans-serif}
         body{background:#f5f7fa;padding:20px;max-width:800px;margin:0 auto}
         .card{background:#fff;border-radius:10px;padding:25px;margin-bottom:20px;box-shadow:0 2px 8px #e0e0e0}
-        h2{color:#2c3e50;margin-bottom:10px;text-align:center}
+        h2{color:#2c3e50;margin-bottom:5px;text-align:center}
         label{display:block;margin:15px 0 5px;color:#34495e}
         input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px}
         .gray { color: #999 !important; }

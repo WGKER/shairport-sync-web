@@ -12,21 +12,6 @@ const (
 	staticDir  = "./static"
 )
 
-// 从 shairport-sync -V 自动获取版本号（函数保留，不再调用）
-func getShairportSyncVersion() string {
-	cmd := exec.Command("shairport-sync", "-V")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return "unknown"
-	}
-	line := strings.TrimSpace(string(out))
-	parts := strings.SplitN(line, "-", 2)
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return "unknown"
-}
-
 // 沿用原有正常工作的netstat检测逻辑
 func getPlayStatus() string {
 	cmd := exec.Command("sh", "-c", "netstat -anp | grep shairport | grep ESTABLISHED | wc -l")

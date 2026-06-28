@@ -233,19 +233,16 @@ html := `
             fetch("/api/status")
             .then(res=>res.text())
             .then(state=>{
-                // 先隐藏图片，重置动画
                 imgEl.style.display = "none";
-                const timestamp = Date.now(); // 时间戳，强制刷新GIF
+                const timestamp = Date.now();
                 if(state === "playing"){
-                    // 拼接时间戳，每次全新加载完整GIF
-                    imgEl.src = `/static/playing.gif?t=${timestamp}`;
+                    imgEl.src = "/static/playing.gif?t=" + timestamp;
                     textEl.innerText = "正在播放";
-                    // 图片加载完成后再显示，保证完整帧
                     imgEl.onload = ()=>{
                         imgEl.style.display = "block";
                     }
                 }else if(state === "ready"){
-                    imgEl.src = `/static/ready.png?t=${timestamp}`;
+                    imgEl.src = "/static/ready.png?t=" + timestamp;
                     textEl.innerText = "准备就绪";
                     imgEl.onload = ()=>{
                         imgEl.style.display = "block";

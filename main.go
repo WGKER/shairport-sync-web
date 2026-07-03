@@ -202,7 +202,7 @@ html := `
 
             <!-- 新增service-type输入框，放在密码下方 -->
             <label>服务类型</label>
-			<input type="text" name="service_type" value="` + displaySvcType + `" class="` + ifTrue(isSvcTypeComment, "gray") + `" placeholder="可选 auto(默认) / classic / airplay2">
+			<input type="text" name="service_type" value="`+displaySvcType+`" class="`+ifTrue(isSvcTypeComment, "gray")+`" placeholder="( auto(默认) / classic / airplay2 )">
             
             <label>声卡设备</label>
             <input type="text" name="device" value="`+displayDevice+`" class="`+ifTrue(isDevComment, "gray")+`" placeholder="( hw:0、hw:1 等声卡序号 )">

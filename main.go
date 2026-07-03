@@ -113,11 +113,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// service-type页面展示值，默认auto
 	displaySvcType := serviceType
-	if displaySvcType == "" {
-		displaySvcType = "auto"
-	}
 	if isSvcTypeComment {
-		displaySvcType = "//" + displaySvcType
+		displaySvcType = "//" + serviceType
 	}
 	displayDevice := device
 	if isDevComment {

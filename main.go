@@ -98,7 +98,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	isNameComment, name := getConfigEx("name")
 	isPwdComment, password := getConfigEx("password")
 	// 新增service-type读取
-	isSvcTypeComment, serviceType := getConfigEx("service-type")
+	isSvcTypeComment, serviceType := getConfigEx("service_type")
 	isDevComment, device := getConfigEx("output_device")
 	isMixerComment, mixer := getConfigEx("mixer_control_name")
 	isVolComment, volumeRange := getConfigEx("volume_range_db")
@@ -200,15 +200,15 @@ html := `
             <label>连接密码</label>
 			<input type="text" name="password" value="`+displayPwd+`" class="`+ifTrue(isPwdComment, "gray")+`" placeholder="( AirPlay 1 & 2 )">
 
-            <!-- 新增service-type输入框，放在密码下方 -->
+            <!-- 新增service_type输入框，放在密码下方 -->
             <label>服务类型</label>
 			<input type="text" name="service_type" value="`+displaySvcType+`" class="`+ifTrue(isSvcTypeComment, "gray")+`" placeholder="( auto(默认) / classic / airplay2 )">
             
             <label>声卡设备</label>
-            <input type="text" name="device" value="`+displayDevice+`" class="`+ifTrue(isDevComment, "gray")+`" placeholder="( hw:0、hw:1 等声卡序号 )">
+            <input type="text" name="output_device" value="`+displayDevice+`" class="`+ifTrue(isDevComment, "gray")+`" placeholder="( hw:0、hw:1 等声卡序号 )">
             
             <label>混音器名</label>
-            <input type="text" name="mixer" value="`+displayMixer+`" class="`+ifTrue(isMixerComment, "gray")+`" placeholder="( PCM、Master 等 )">
+            <input type="text" name="mixer_control_name" value="`+displayMixer+`" class="`+ifTrue(isMixerComment, "gray")+`" placeholder="( PCM、Master 等 )">
             
 			<label>音量范围</label>
             <input type="text" name="volume_range_db" value="`+displayVol+`" class="`+ifTrue(isVolComment, "gray")+`" placeholder="( 例如：30，Range is 30 to 150 dB )">
@@ -271,13 +271,13 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
 	// 读取表单service_type，映射配置key service-type
 	newServiceType := strings.TrimPrefix(r.PostFormValue("service_type"), "//")
-	newDevice := strings.TrimPrefix(r.PostFormValue("device"), "//")
-	newMixer := strings.TrimPrefix(r.PostFormValue("mixer"), "//")
+	newDevice := strings.TrimPrefix(r.PostFormValue("output_device"), "//")
+	newMixer := strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//")
 	newVolume := strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//")
 
 	_, oldName := getConfigEx("name")
 	_, oldPassword := getConfigEx("password")
-	_, oldServiceType := getConfigEx("service-type")
+	_, oldServiceType := getConfigEx("service_type")
 	_, oldDevice := getConfigEx("output_device")
 	_, oldMixer := getConfigEx("mixer_control_name")
 	_, oldVolume := getConfigEx("volume_range_db")
@@ -303,7 +303,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// 写入service-type配置
 	if newServiceType != oldServiceType {
-		setConfig("service-type", newServiceType)
+		setConfig("service_type", newServiceType)
 	}
 	if newDevice != oldDevice {
 		setConfig("output_device", newDevice)
@@ -359,7 +359,7 @@ func setConfig(key, val string) {
 
 			var newLine string
 			// volume_range_db 和 service-type 不加引号
-			if key == "volume_range_db" || key == "service-type" {
+			if key == "volume_range_db" || key == "service_type" {
 				newLine = key + " = " + val
 			} else {
 				newLine = key + " = \"" + val + "\""

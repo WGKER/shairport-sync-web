@@ -332,7 +332,9 @@ func setConfig(key, val string) {
 		originalLine := line
 
 		cleanLine := trimmed
+		isDoubleSlashComment := false
 		if strings.HasPrefix(trimmed, "//") {
+			isDoubleSlashComment = true
 			cleanLine = strings.TrimSpace(trimmed[2:])
 		} else if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
 			cleanLine = strings.TrimSpace(trimmed[1:])
@@ -344,6 +346,11 @@ func setConfig(key, val string) {
 				indent = originalLine[:len(originalLine)-len(trimmed)]
 			}
 
+			// 原先是//注释行，强制替换缩进为4个英文空格，保证对齐
+			if isDoubleSlashComment {
+				indent = "    "
+			}
+			
 			commentPart := ""
 			commentIdx := -1
 			if idx := strings.Index(cleanLine, ";"); idx != -1 {
@@ -358,8 +365,8 @@ func setConfig(key, val string) {
 			}
 
 			var newLine string
-			// volume_range_db 和 service-type 不加引号
-			if key == "volume_range_db" || key == "service_type" {
+			// volume_range_db 不加引号
+			if key == "volume_range_db" {
 				newLine = key + " = " + val
 			} else {
 				newLine = key + " = \"" + val + "\""

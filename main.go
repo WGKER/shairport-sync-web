@@ -5,15 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
-	"time"
 )
 
 const (
 	configFile = "/etc/shairport-sync.conf"
 	staticDir  = "./static"
 )
-var configLock sync.Mutex
 
 // 沿用原有正常工作的netstat检测逻辑
 func getPlayStatus() string {
@@ -269,11 +266,10 @@ func ifTrue(cond bool, s string) string {
 	return ""
 }
 
-// 点击保存，先做新旧对比
+// 优化：未修改则提示并取消保存
 func saveHandler(w http.ResponseWriter, r *http.Request) {
 	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
 	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
-	// 读取表单service_type，映射配置key service-type
 	newServiceType := strings.TrimPrefix(r.PostFormValue("service_type"), "//")
 	newDevice := strings.TrimPrefix(r.PostFormValue("output_device"), "//")
 	newMixer := strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//")
@@ -286,26 +282,21 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	_, oldMixer := getConfigEx("mixer_control_name")
 	_, oldVolume := getConfigEx("volume_range_db")
 
-	changed := newName != oldName ||
-		newPassword != oldPassword ||
-		newServiceType != oldServiceType ||
-		newDevice != oldDevice ||
-		newMixer != oldMixer ||
-		newVolume != oldVolume
+	changed := false
+	if newName != oldName || newPassword != oldPassword || newServiceType != oldServiceType || newDevice != oldDevice || newMixer != oldMixer || newVolume != oldVolume {
+		changed = true
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if !changed {
-		// 无修改：弹窗提示，返回首页
+		// 分支1：无修改弹窗，直接返回首页
 		w.Write([]byte(`
-<script>
-alert("没有修改，无需保存！");
-window.location.href="/";
-</script>`))
+<script>alert("没有修改，保存取消！");window.location.href='/'</script>
+		`))
 		return
 	}
 
-	// 有修改：弹出确认框，确认后提交到 /save-confirm
-	// 把表单数据隐藏传入确认页面，二次提交保存
+	// 分支2：存在修改，仅输出弹窗+隐藏表单，【不执行写入、不重启】
 	w.Write([]byte(`
 <form id="confirmForm" action="/save-confirm" method="POST" style="display:none">
 	<input name="name" value="` + newName + `">
@@ -316,7 +307,7 @@ window.location.href="/";
 	<input name="volume_range_db" value="` + newVolume + `">
 </form>
 <script>
-if(confirm("确认保存并重启服务吗？")){
+if(confirm("确认修改并重启服务生效？")){
 	document.getElementById("confirmForm").submit();
 }else{
 	window.location.href="/";
@@ -324,11 +315,8 @@ if(confirm("确认保存并重启服务吗？")){
 </script>`))
 }
 
-//确认弹窗点确定后执行
+// 新增 /save-confirm 处理确认后的写入、重启（放在同文件内）
 func saveConfirmHandler(w http.ResponseWriter, r *http.Request) {
-  configLock.Lock()
-  defer configLock.Unlock()
-	
 	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
 	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
 	newServiceType := strings.TrimPrefix(r.PostFormValue("service_type"), "//")
@@ -342,8 +330,8 @@ func saveConfirmHandler(w http.ResponseWriter, r *http.Request) {
 	_, oldDevice := getConfigEx("output_device")
 	_, oldMixer := getConfigEx("mixer_control_name")
 	_, oldVolume := getConfigEx("volume_range_db")
-	
-	// 按需写入变更配置
+
+	// 仅变更项写入
 	if newName != oldName {
 		setConfig("name", newName)
 	}
@@ -363,20 +351,13 @@ func saveConfirmHandler(w http.ResponseWriter, r *http.Request) {
 		setConfig("volume_range_db", newVolume)
 	}
 
-	// 后台异步重启，不阻塞页面响应
-	go func() {
-		_ = exec.Command("pkill", "-x", "shairport-sync").Run()
-		time.Sleep(1 * time.Second)
-		_ = exec.Command("shairport-sync", "-d").Start()
-	}()
+	// 重启服务
+	exec.Command("pkill", "shairport-sync").Run()
+	exec.Command("shairport-sync", "-d").Run()
 
-	// 保存成功提示
+	// 弹窗提示成功并刷新页面
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`
-<script>
-alert("保存成功，正在重启！");
-window.location.href="/";
-</script>`))
+	w.Write([]byte(`<script>alert("保存成功，正在重启！");window.location.href="/"</script>`))
 }
 
 // 写入配置：自动取消 // 注释

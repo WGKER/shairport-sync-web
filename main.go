@@ -301,7 +301,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		// 分支1：无修改弹窗，直接返回首页
 		w.Write([]byte(`
 <script>
-alert("没有修改，保存取消！");
+alert("没有修改，保存取消！");window.location.href='/'
 </script>
 		`))
 		return
@@ -320,6 +320,9 @@ alert("没有修改，保存取消！");
 <script>
 if (confirm("确认修改并重启服务生效？")){
 	document.getElementById("confirmForm").submit();
+}
+else{
+	window.location.href="/";
 }
 </script>`))
 }
@@ -380,8 +383,11 @@ go func() {
 
 	// 页面延时刷新
 w.Write([]byte(`
+<div style="padding:40px;text-align:center;color:#666;font-size:16px;font-weight:bold;">
+音频服务正在重启...
+</div>
 <script>
-setTimeout(()=>window.location.reload(), 3000);
+setTimeout(()=>window.location.href="/", 1000);
 </script>
 `))
 }

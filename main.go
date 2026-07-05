@@ -268,12 +268,21 @@ func ifTrue(cond bool, s string) string {
 
 // 优化：未修改则提示并取消保存
 func saveHandler(w http.ResponseWriter, r *http.Request) {
-	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
-	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
-	newServiceType := strings.TrimPrefix(r.PostFormValue("service_type"), "//")
-	newDevice := strings.TrimPrefix(r.PostFormValue("output_device"), "//")
-	newMixer := strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//")
-	newVolume := strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//")
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// 增加POST限制
+	if r.Method != http.MethodPost {
+		w.Write([]byte(`<script>alert("非法请求");history.back()</script>`))
+		return
+	}
+	
+	// 统一清洗：先去//再清首尾空格，和saveConfirm保持一致
+	newName := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("name"), "//"))
+	newPassword := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("password"), "//"))
+	newServiceType := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("service_type"), "//"))
+	newDevice := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("output_device"), "//"))
+	newMixer := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//"))
+	newVolume := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//"))
 
 	_, oldName := getConfigEx("name")
 	_, oldPassword := getConfigEx("password")
@@ -291,7 +300,9 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	if !changed {
 		// 分支1：无修改弹窗，直接返回首页
 		w.Write([]byte(`
-<script>alert("没有修改，保存取消！");window.location.href='/'</script>
+<script>
+alert("没有修改，保存取消！");
+</script>
 		`))
 		return
 	}
@@ -307,23 +318,30 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	<input name="volume_range_db" value="` + newVolume + `">
 </form>
 <script>
-if(confirm("确认修改并重启服务生效？")){
+if (confirm("确认修改并重启服务生效？")){
 	document.getElementById("confirmForm").submit();
-}else{
-	window.location.href="/";
 }
 </script>`))
 }
 
 // 新增 /save-confirm 处理确认后的写入、重启（放在同文件内）
 func saveConfirmHandler(w http.ResponseWriter, r *http.Request) {
-	newName := strings.TrimPrefix(r.PostFormValue("name"), "//")
-	newPassword := strings.TrimPrefix(r.PostFormValue("password"), "//")
-	newServiceType := strings.TrimPrefix(r.PostFormValue("service_type"), "//")
-	newDevice := strings.TrimPrefix(r.PostFormValue("output_device"), "//")
-	newMixer := strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//")
-	newVolume := strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// 限制仅POST提交
+	if r.Method != http.MethodPost {
+		w.Write([]byte(`<script>alert("非法请求方式");history.back()</script>`))
+		return
+	}
+	
+// 读取并清理输入
+	newName := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("name"), "//"))
+	newPassword := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("password"), "//"))
+	newServiceType := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("service_type"), "//"))
+	newDevice := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("output_device"), "//"))
+	newMixer := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("mixer_control_name"), "//"))
+	newVolume := strings.TrimSpace(strings.TrimPrefix(r.PostFormValue("volume_range_db"), "//"))
 
+// 获取旧配置
 	_, oldName := getConfigEx("name")
 	_, oldPassword := getConfigEx("password")
 	_, oldServiceType := getConfigEx("service_type")
@@ -351,14 +369,21 @@ func saveConfirmHandler(w http.ResponseWriter, r *http.Request) {
 		setConfig("volume_range_db", newVolume)
 	}
 
-	// 重启服务
-	exec.Command("pkill", "shairport-sync").Run()
-	exec.Command("shairport-sync", "-d").Run()
+// 异步启停，不阻塞页面响应
+go func() {
+	_ = exec.Command("pkill", "shairport-sync").Run()
+}()
+go func() {
+	cmd := exec.Command("shairport-sync", "-d")
+	_ = cmd.Start()
+}()
 
-	// 弹窗提示成功并刷新页面
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`<script>alert("保存成功，正在重启！");window.location.href="/"</script>`))
-}
+	// 页面延时刷新
+w.Write([]byte(`
+<script>
+setTimeout(()=>window.location.reload(), 3000);
+</script>
+`))
 
 // 写入配置：自动取消 // 注释
 func setConfig(key, val string) {

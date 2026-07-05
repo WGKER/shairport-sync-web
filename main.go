@@ -384,6 +384,7 @@ w.Write([]byte(`
 setTimeout(()=>window.location.reload(), 3000);
 </script>
 `))
+}
 
 // 写入配置：自动取消 // 注释
 func setConfig(key, val string) {

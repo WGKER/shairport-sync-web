@@ -385,9 +385,9 @@ func setConfig(key, val string) {
 				indent = originalLine[:len(originalLine)-len(trimmed)]
 			}
 
-			// 原先是//注释行，强制替换缩进为4个英文空格，保证对齐
+			// 原先是//注释行，强制替换缩进为1个Tab，保证对齐
 			if isDoubleSlashComment {
-				indent = "    "
+				indent = "	"
 			}
 			
 			commentPart := ""

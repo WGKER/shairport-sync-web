@@ -1,4 +1,4 @@
-FROM mikebrady/shairport-sync:5.2.2
+FROM mikebrady/shairport-sync:5.2.3
 
 # 复制 webui 并授权
 COPY webui /webui
